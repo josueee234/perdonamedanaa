@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sol y Luna Girando en 3D</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #question-container {
+            position: absolute;
+            width: 60%;
+            height: 40%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #question {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .answer-button {
+            padding: 20px 40px;
+            font-size: 24px;
+            cursor: pointer;
+            margin: 10px;
+            border: none;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .yes-button {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .no-button {
+            background-color: #dc3545;
+            color: white;
+            position: relative;
+        }
+
+        #thank-you-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 28px;
+            color: white;
+            text-align: center;
+            display: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let sun, moon;
+        let distance = 20;
+        let angle = 0;
+        let moonSwingAngle = 0;
+        let moonSwingDirection = 0.01;
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 40;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            let textureLoader = new THREE.TextureLoader();
+            let sunTexture = textureLoader.load('https://static.vecteezy.com/system/resources/previews/009/664/099/large_2x/sun-sun-ray-icon-transparent-free-png.png');
+            let moonTexture = textureLoader.load('https://static.vecteezy.com/system/resources/previews/017/178/226/large_2x/crescent-moon-icon-isolated-on-transparent-background-free-png.png');
+            let starsTexture = textureLoader.load('https://cdn.pixabay.com/photo/2013/07/12/19/17/stars-154005_1280.png');
+
+            let starsGeometry = new THREE.PlaneGeometry(1000, 1000);
+            let starsMaterial = new THREE.MeshBasicMaterial({
+                map: starsTexture,
+                side: THREE.DoubleSide
+            });
+            let stars = new THREE.Mesh(starsGeometry, starsMaterial);
+            stars.position.z = -500;
+            scene.add(stars);
+
+            let sunGeometry = new THREE.PlaneGeometry(20, 20);
+            let moonGeometry = new THREE.PlaneGeometry(15, 15);
+            let sunMaterial = new THREE.MeshBasicMaterial({ map: sunTexture, transparent: true });
+            let moonMaterial = new THREE.MeshBasicMaterial({ map: moonTexture, transparent: true });
+
+            sun = new THREE.Mesh(sunGeometry, sunMaterial);
+            moon = new THREE.Mesh(moonGeometry, moonMaterial);
+
+            // Ocultar el sol y la luna inicialmente
+            sun.visible = false;
+            moon.visible = false;
+
+            scene.add(sun);
+            scene.add(moon);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (sun.visible && moon.visible) {
+                angle += 0.01;
+                sun.position.x = distance * Math.cos(angle);
+                sun.position.y = distance * Math.sin(angle);
+                sun.rotation.z += 0.01;
+                moon.position.x = distance * Math.cos(angle + Math.PI);
+                moon.position.y = distance * Math.sin(angle + Math.PI);
+
+                moon.rotation.z = Math.sin(moonSwingAngle) * 0.1;
+                moonSwingAngle += moonSwingDirection;
+                if (moonSwingAngle > Math.PI / 4 || moonSwingAngle < -Math.PI / 4) {
+                    moonSwingDirection *= -1;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize, false);
+        init();
+        animate();
+    </script>
+
+    <div id="question-container">
+        <div id="question">¿ME PERDONAS DANAAAE?</div>
+        <button class="answer-button yes-button" onclick="showThankYouMessage()">sí</button>
+        <button class="answer-button no-button" id="no-button" onmouseover="startMovingButton()">no, vete alv</button>
+    </div>
+
+    <div id="thank-you-message">muchas gracias Dana, <br>agradezco que lo hagas, 
+        <br>te quiero<br>🤟🏽</div>
+
+    <audio id="audio-player" src="sur.mp3"></audio>
+
+    <script>
+        let movingInterval;
+
+        function playAudio() {
+            const audio = document.getElementById('audio-player');
+            audio.play();
+        }
+
+        function startMovingButton() {
+            const button = document.getElementById('no-button');
+            if (movingInterval) clearInterval(movingInterval);
+            
+            movingInterval = setInterval(() => {
+                moveButton(button);
+            }, 100);
+        }
+
+        function moveButton(button) {
+            const container = document.getElementById('question-container');
+            const containerRect = container.getBoundingClientRect();
+            const buttonRect = button.getBoundingClientRect();
+
+            const yesButton = document.querySelector('.yes-button');
+            const yesButtonRect = yesButton.getBoundingClientRect();
+
+            let newX, newY;
+            do {
+                newX = Math.random() * (containerRect.width - buttonRect.width);
+                newY = Math.random() * (containerRect.height - buttonRect.height);
+            } while (
+                (newX < yesButtonRect.right && newX + buttonRect.width > yesButtonRect.left) &&
+                (newY < yesButtonRect.bottom && newY + buttonRect.height > yesButtonRect.top)
+            );
+
+            button.style.left = newX + 'px';
+            button.style.top = newY + 'px';
+        }
+
+        function showThankYouMessage() {
+            document.getElementById('question-container').style.display = 'none';
+            document.getElementById('thank-you-message').style.display = 'block';
+
+            // Mostrar el sol y la luna
+            sun.visible = true;
+            moon.visible = true;
+
+            playAudio();
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
